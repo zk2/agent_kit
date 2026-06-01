@@ -1,0 +1,9 @@
+{
+  "intent_accuracy": 1.0,
+  "retrieval_recall": 1.0,
+  "citation_grounding": 1.0,
+  "no_answer_accuracy": 1.0,
+  "tool_use_correctness": 1.0,
+  "answer_correctness": 1.0,
+  "pass_rate": 1.0
+}

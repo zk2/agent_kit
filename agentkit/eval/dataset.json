@@ -1,0 +1,57 @@
+[
+  {
+    "id": "rag-deploy-serving",
+    "type": "rag",
+    "question": "What serves the agentkit application and on what port does it listen?",
+    "expected_intent": "question",
+    "expected_source": "deployment.md",
+    "must_cite": true,
+    "must_contain": ["uvicorn", "8000"],
+    "must_not_contain": ["kubernetes"]
+  },
+  {
+    "id": "rag-retrieval-fusion",
+    "type": "rag",
+    "question": "How does agentkit combine vector similarity and full text search?",
+    "expected_intent": "question",
+    "expected_source": "retrieval.md",
+    "must_cite": true,
+    "must_contain": ["reciprocal rank fusion"],
+    "must_not_contain": ["elasticsearch"]
+  },
+  {
+    "id": "reg-port-not-refused",
+    "type": "rag",
+    "question": "On what port does the agentkit application listen?",
+    "expected_intent": "question",
+    "expected_source": "deployment.md",
+    "must_cite": true,
+    "expect_no_answer": false,
+    "must_contain": ["8000"]
+  },
+  {
+    "id": "tool-multiply",
+    "type": "tool",
+    "question": "Using the agentkit calculator tool, what is 12 * 12?",
+    "expected_intent": "question",
+    "expected_source": "calculations.md",
+    "expected_tool": "calculator",
+    "must_cite": true,
+    "must_contain": ["144"]
+  },
+  {
+    "id": "no-answer-out-of-base",
+    "type": "no_answer",
+    "question": "What were avocado prices in Lisbon markets last quarter?",
+    "expected_intent": "question",
+    "expect_no_answer": true,
+    "must_contain": ["don't have enough information"]
+  },
+  {
+    "id": "chitchat-greeting",
+    "type": "chitchat",
+    "question": "Hello there, thanks for the help!",
+    "expected_intent": "chitchat",
+    "must_contain": ["help"]
+  }
+]
