@@ -32,13 +32,16 @@ def calculator(expression: str) -> str:
 @mcp.tool()
 def save_note(text: str) -> str:
     """Persist a note to the database. This has a side effect and requires human approval."""
+    from psycopg.rows import dict_row
+
     from agentkit.retrieval.store import get_retriever
 
     with get_retriever().pool.connection() as conn:
         conn.execute("CREATE TABLE IF NOT EXISTS notes (id bigserial PRIMARY KEY, text text)")
-        row = conn.execute(
-            "INSERT INTO notes (text) VALUES (%s) RETURNING id", (text,)
-        ).fetchone()
+        with conn.cursor(row_factory=dict_row) as cur:
+            cur.execute("INSERT INTO notes (text) VALUES (%s) RETURNING id", (text,))
+            row = cur.fetchone()
+    assert row is not None  # INSERT ... RETURNING always yields a row
     return f"saved note #{row['id']}"
 
 
@@ -46,12 +49,15 @@ def save_note(text: str) -> str:
 def chunk_stats() -> dict:
     """Return the number of indexed retrieval chunks per source document."""
     # Imported lazily so the server starts (and `calculator` works) without a DB.
+    from psycopg.rows import dict_row
+
     from agentkit.retrieval.store import get_retriever
 
-    with get_retriever().pool.connection() as conn:
-        rows = conn.execute(
+    with get_retriever().pool.connection() as conn, conn.cursor(row_factory=dict_row) as cur:
+        cur.execute(
             "SELECT source, count(*) AS chunks FROM documents GROUP BY source ORDER BY source"
-        ).fetchall()
+        )
+        rows = cur.fetchall()
     return {r["source"]: r["chunks"] for r in rows}
 
 

@@ -83,7 +83,7 @@ class StubChat(BaseChatModel):
 
     def _generate(self, messages, stop=None, run_manager=None, **kwargs) -> ChatResult:
         first = messages[0] if messages else None
-        system = first.content if getattr(first, "type", None) == "system" else ""
+        system = first.content if first is not None and first.type == "system" else ""
         if "Classify the user" in system:
             msg = self._classify(messages)
         elif "decide whether external tools" in system:

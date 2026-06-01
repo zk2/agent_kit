@@ -14,11 +14,19 @@ from __future__ import annotations
 
 import logging
 from contextlib import asynccontextmanager
+from typing import Any
 
 from fastapi import FastAPI, HTTPException
 
 import agentkit.core.graph.nodes as graph_nodes
-from agentkit.api.schemas import ChatRequest, ChatResponse, MessageView, ResumeRequest, RunView
+from agentkit.api.schemas import (
+    ChatRequest,
+    ChatResponse,
+    Citation,
+    MessageView,
+    ResumeRequest,
+    RunView,
+)
 from agentkit.config import settings
 from agentkit.core.checkpoint import open_checkpointer
 from agentkit.core.graph import build_graph
@@ -78,7 +86,7 @@ def _to_response(rr: RunResult) -> ChatResponse:
         status=rr.status,
         intent=rr.intent,
         response=rr.response,
-        citations=rr.citations,
+        citations=[Citation(**c) for c in rr.citations],
         interrupt=rr.interrupt,
         latency_ms=rr.latency_ms,
         cost_usd=rr.cost_usd,
@@ -98,7 +106,7 @@ async def chat(req: ChatRequest) -> ChatResponse:
 
 @app.post("/runs/{thread_id}/resume", response_model=ChatResponse)
 async def resume_run(thread_id: str, req: ResumeRequest) -> ChatResponse:
-    decision = {"action": req.action}
+    decision: dict[str, Any] = {"action": req.action}
     if req.tool_calls is not None:
         decision["tool_calls"] = req.tool_calls
     try:
@@ -139,7 +147,7 @@ async def get_run(thread_id: str) -> RunView:
         status=status,
         intent=snapshot.values.get("intent"),
         messages=_serialize(snapshot.values.get("messages", [])),
-        citations=snapshot.values.get("citations", []),
+        citations=[Citation(**c) for c in snapshot.values.get("citations", [])],
         retrieval_score=snapshot.values.get("retrieval_score"),
         interrupt=interrupts[0].value if interrupts else None,
         trace=trace,

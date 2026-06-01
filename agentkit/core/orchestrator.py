@@ -13,6 +13,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
+from typing import Literal
 from uuid import uuid4
 
 from langchain_core.messages import HumanMessage
@@ -20,11 +21,13 @@ from langgraph.types import Command
 
 from agentkit.config import settings
 
+RunStatus = Literal["running", "awaiting_review", "done", "failed"]
+
 
 @dataclass
 class RunResult:
     thread_id: str
-    status: str  # running | awaiting_review | done | failed
+    status: RunStatus
     response: str = ""
     intent: str | None = None
     citations: list[dict] = field(default_factory=list)
@@ -164,7 +167,7 @@ class ClaudeAgentSDKOrchestrator(Orchestrator):
 
     async def run(self, message: str, thread_id: str | None = None) -> RunResult:
         try:
-            import claude_agent_sdk as sdk
+            import claude_agent_sdk as sdk  # type: ignore[import-not-found]  # optional dep
         except ImportError as exc:  # pragma: no cover - optional dependency
             raise RuntimeError(
                 "claude-agent-sdk is not installed; `pip install '.[agent-sdk]'`"

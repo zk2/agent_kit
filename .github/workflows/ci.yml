@@ -33,15 +33,22 @@ jobs:
         with:
           python-version: "3.11"
 
+      # A venv named "venv" so the [tool.pyright] venv config resolves the same as locally.
       - name: Install
-        run: pip install -e ".[dev]"
+        run: |
+          python -m venv venv
+          venv/bin/pip install --upgrade pip
+          venv/bin/pip install -e ".[dev]"
 
-      - name: Lint
-        run: ruff check .
+      - name: Lint (ruff)
+        run: venv/bin/ruff check .
 
-      - name: Tests
-        run: pytest -q
+      - name: Type check (pyright)
+        run: venv/bin/pyright
+
+      - name: Tests (pytest)
+        run: venv/bin/pytest -q
 
       - name: Eval gate
         # Deterministic StubChat -> no API key needed. Fails the build on metric regressions.
-        run: python -m agentkit.eval.runner
+        run: venv/bin/python -m agentkit.eval.runner

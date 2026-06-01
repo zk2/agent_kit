@@ -77,7 +77,7 @@ class FastEmbedEmbedder:
     provider = "fastembed"
 
     def __init__(self, model: str = "BAAI/bge-small-en-v1.5", dim: int = 384) -> None:
-        from fastembed import TextEmbedding  # imported lazily; optional dependency
+        from fastembed import TextEmbedding  # type: ignore[import-not-found]  # optional dep
 
         self._model = TextEmbedding(model_name=model)
         self.dim = dim

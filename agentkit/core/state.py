@@ -8,33 +8,34 @@ stage; for now we keep the conversation, the classified intent, and an error slo
 from __future__ import annotations
 
 import operator
-from typing import Annotated, TypedDict
+from typing import Annotated, NotRequired, TypedDict
 
 from langchain_core.messages import AnyMessage
 from langgraph.graph.message import add_messages
 
 
-class State(TypedDict, total=False):
+class State(TypedDict):
     # Conversation history. `add_messages` appends and de-dupes by id across turns.
+    # Always present (seeded from the request); every other field is filled in by a node.
     messages: Annotated[list[AnyMessage], add_messages]
 
     # Output of the classify node: e.g. "question" | "chitchat" | "other".
-    intent: str
+    intent: NotRequired[str]
 
     # Retrieval (Stage 2).
-    query: str  # text used for retrieval (the user's question)
-    chunks: list[dict]  # retrieved chunks, serialized for checkpointing
-    retrieval_score: float  # top cosine similarity, drives the no-answer decision
-    citations: list[dict]  # sources actually cited in the answer
+    query: NotRequired[str]  # text used for retrieval (the user's question)
+    chunks: NotRequired[list[dict]]  # retrieved chunks, serialized for checkpointing
+    retrieval_score: NotRequired[float]  # top cosine similarity, drives the no-answer decision
+    citations: NotRequired[list[dict]]  # sources actually cited in the answer
 
     # Tools (Stage 3).
-    tool_iterations: int  # number of plan<->tools loops taken, capped to avoid looping
+    tool_iterations: NotRequired[int]  # plan<->tools loops taken, capped to avoid looping
 
     # Human-in-the-loop (Stage 4).
-    review_decision: str  # last operator decision: "approve" | "reject"
+    review_decision: NotRequired[str]  # last operator decision: "approve" | "reject"
 
     # Observability (Stage 6): one span per node execution, accumulated across the run.
-    trace: Annotated[list[dict], operator.add]
+    trace: NotRequired[Annotated[list[dict], operator.add]]
 
     # Populated when a node fails or flags a quality issue in a recoverable way.
-    error: str
+    error: NotRequired[str]

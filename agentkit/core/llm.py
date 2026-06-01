@@ -15,7 +15,7 @@ from agentkit.config import settings
 
 @lru_cache(maxsize=4)
 def get_llm(model: str | None = None) -> ChatAnthropic:
-    return ChatAnthropic(
+    return ChatAnthropic(  # type: ignore[call-arg]  # aliased kwargs verified at runtime
         model_name=model or settings.anthropic_model,
         api_key=settings.anthropic_api_key,
         temperature=settings.llm_temperature,

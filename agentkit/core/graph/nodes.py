@@ -1,4 +1,4 @@
-"""Graph nodes.
+r"""Graph nodes.
 
 Flow (Stage 3):
 
@@ -54,10 +54,16 @@ _NO_ANSWER_TEXT = (
 )
 
 
+def _text(message) -> str:
+    """A message's content as a plain string (LangChain content can be str or a list of blocks)."""
+    content = message.content
+    return content if isinstance(content, str) else str(content)
+
+
 def _last_user_text(state: State) -> str:
     for m in reversed(state.get("messages", [])):
         if getattr(m, "type", None) == "human":
-            return m.content if isinstance(m.content, str) else str(m.content)
+            return _text(m)
     return ""
 
 
@@ -89,7 +95,8 @@ def _extract_citations(answer: str, chunks: list[dict]) -> list[dict]:
 def classify(state: State) -> dict:
     llm = get_llm()
     result = llm.invoke([_CLASSIFY_PROMPT, *state["messages"]])
-    intent = result.content.strip().lower().split()[0] if result.content.strip() else "other"
+    text = _text(result).strip()
+    intent = text.lower().split()[0] if text else "other"
     return {"intent": intent}
 
 
@@ -118,7 +125,7 @@ def make_plan(tools: list):
                 pass  # model without tool support -> degrade to no tools
         context = _format_context(state.get("chunks", []))
         system = SystemMessage(
-            _PLAN_PROMPT.content + (f"\n\nContext:\n{context}" if context else "")
+            _text(_PLAN_PROMPT) + (f"\n\nContext:\n{context}" if context else "")
         )
         ai = llm.invoke([system, *state["messages"]])
         return {"messages": [ai]}
@@ -176,8 +183,8 @@ def review(state: State) -> dict:
     if action == "edit":
         last = state["messages"][-1]
         edited = AIMessage(
-            content=last.content,
-            tool_calls=decision.get("tool_calls", last.tool_calls),
+            content=_text(last),
+            tool_calls=decision.get("tool_calls", getattr(last, "tool_calls", [])),
             id=last.id,  # same id -> add_messages replaces the original message
         )
         return {"review_decision": "approve", "messages": [edited]}
@@ -195,7 +202,7 @@ def synthesize(state: State) -> dict:
         "Answer using only the context and tool results, and cite sources with [n]."
     )
     result = get_llm().invoke([_SYNTH_PROMPT, user])
-    citations = _extract_citations(result.content, chunks)
+    citations = _extract_citations(_text(result), chunks)
     return {"messages": [result], "citations": citations}
 
 

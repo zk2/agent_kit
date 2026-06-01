@@ -18,13 +18,14 @@ import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from langchain_core.messages import HumanMessage
+from langchain_core.messages import AnyMessage, HumanMessage
 from langchain_core.tools import tool
 from langgraph.checkpoint.memory import MemorySaver
 
 import agentkit.core.graph.nodes as nodes
 from agentkit.core.graph import build_graph
 from agentkit.core.graph.nodes import _NO_ANSWER_TEXT
+from agentkit.core.state import State
 from agentkit.eval.stub_llm import StubChat
 from agentkit.retrieval.ingest import ingest_path
 from agentkit.tools.calc import CalcError, safe_eval
@@ -154,10 +155,9 @@ def run_eval() -> tuple[list[CaseResult], dict[str, float]]:
     cases = json.loads(_DATASET.read_text())
 
     async def _invoke(case):
-        return await graph.ainvoke(
-            {"messages": [HumanMessage(case["question"])]},
-            {"configurable": {"thread_id": case["id"]}},
-        )
+        messages: list[AnyMessage] = [HumanMessage(case["question"])]
+        inp: State = {"messages": messages}
+        return await graph.ainvoke(inp, {"configurable": {"thread_id": case["id"]}})
 
     results: list[CaseResult] = []
     for case in cases:

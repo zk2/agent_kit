@@ -35,7 +35,8 @@ async def open_checkpointer() -> AsyncIterator[AsyncPostgresSaver]:
     )
     await pool.open()
     try:
-        saver = AsyncPostgresSaver(pool)
+        # AsyncPostgresSaver accepts a pool at runtime; its stub types only a single connection.
+        saver = AsyncPostgresSaver(pool)  # type: ignore[arg-type]
         await saver.setup()  # idempotent: creates checkpoint tables if missing
         yield saver
     finally:

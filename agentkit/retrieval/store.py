@@ -13,12 +13,16 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 from functools import lru_cache
 
-from psycopg.rows import dict_row
+from psycopg import Connection
+from psycopg.rows import TupleRow, dict_row
 from psycopg_pool import ConnectionPool
 
 from agentkit.config import settings
 from agentkit.retrieval.chunking import Chunk
 from agentkit.retrieval.embeddings import Embedder, get_embedder, to_pgvector
+
+# The pool yields default (tuple-row) connections; read paths opt into dict_row per cursor.
+_Pool = ConnectionPool[Connection[TupleRow]]
 
 _RRF_K = 60  # RRF damping constant
 
@@ -98,24 +102,27 @@ class Retriever:
     def __init__(self, conninfo: str, embedder: Embedder) -> None:
         self._conninfo = conninfo
         self.embedder = embedder
-        self._pool: ConnectionPool | None = None
+        self._pool: _Pool | None = None
 
     @property
-    def pool(self) -> ConnectionPool:
-        if self._pool is None:
-            pool = ConnectionPool(
+    def pool(self) -> _Pool:
+        pool = self._pool
+        if pool is None:
+            created: _Pool = ConnectionPool(
                 self._conninfo,
                 max_size=5,
                 open=False,
                 kwargs={"autocommit": True, "row_factory": dict_row},
             )
-            pool.open()
-            self._pool = pool
-        return self._pool
+            created.open()
+            self._pool = created
+            pool = created
+        return pool
 
     def ensure_schema(self) -> None:
         with self.pool.connection() as conn:
-            conn.execute(_schema_sql(self.embedder.dim))
+            # dim is a trusted int from config, not user input; safe to interpolate into DDL.
+            conn.execute(_schema_sql(self.embedder.dim))  # type: ignore[arg-type]
 
     def clear(self) -> None:
         with self.pool.connection() as conn:
@@ -141,7 +148,7 @@ class Retriever:
     def search(self, query: str, *, k: int = 5) -> list[RetrievedChunk]:
         qvec = to_pgvector(self.embedder.embed_query(query))
         candidate_pool = max(k * 4, 20)
-        with self.pool.connection() as conn, conn.cursor() as cur:
+        with self.pool.connection() as conn, conn.cursor(row_factory=dict_row) as cur:
             cur.execute(
                 _SEARCH_SQL,
                 {
