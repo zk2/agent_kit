@@ -20,6 +20,7 @@ import psycopg
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.outputs import ChatGeneration, ChatResult
+from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import tool
 from langgraph.types import Command
 
@@ -55,7 +56,8 @@ def _reset_notes() -> None:
 
 def _note_count() -> int:
     with psycopg.connect(settings.database_url, autocommit=True) as conn:
-        return conn.execute("SELECT count(*) FROM notes").fetchone()[0]
+        row = conn.execute("SELECT count(*) FROM notes").fetchone()
+    return row[0] if row else 0
 
 
 @tool
@@ -94,7 +96,7 @@ def _patch_fakes() -> None:
 async def main() -> None:
     _reset_notes()
     _patch_fakes()
-    cfg = {"configurable": {"thread_id": f"hitl-{uuid4().hex[:8]}"}}
+    cfg: RunnableConfig = {"configurable": {"thread_id": f"hitl-{uuid4().hex[:8]}"}}
 
     # --- process 1: run until it pauses for review ---
     async with open_checkpointer() as saver:

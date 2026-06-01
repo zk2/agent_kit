@@ -13,6 +13,7 @@ from uuid import uuid4
 
 from langchain_core.language_models.fake_chat_models import GenericFakeChatModel
 from langchain_core.messages import AIMessage, HumanMessage
+from langchain_core.runnables import RunnableConfig
 
 import agentkit.core.graph.nodes as nodes
 from agentkit.core.checkpoint import open_checkpointer
@@ -29,7 +30,7 @@ def _patch_fake_llm() -> None:
 
 async def main() -> None:
     _patch_fake_llm()
-    config = {"configurable": {"thread_id": f"manual-{uuid4().hex[:8]}"}}
+    config: RunnableConfig = {"configurable": {"thread_id": f"manual-{uuid4().hex[:8]}"}}
 
     # --- "process 1": run the graph, persist to Postgres ---
     async with open_checkpointer() as saver:

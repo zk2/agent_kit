@@ -15,8 +15,8 @@ import asyncio
 import json
 import logging
 import time
-from collections.abc import Callable
-from typing import Any, TypeVar
+from collections.abc import Awaitable, Callable
+from typing import Any, Protocol, TypeVar, overload
 
 from agentkit.config import settings
 from agentkit.obs.cost import cost_usd
@@ -25,6 +25,16 @@ logger = logging.getLogger("agentkit.obs")
 
 # Preserve the node's state type through the wrapper so LangGraph sees the right node signature.
 StateT = TypeVar("StateT")
+StateT_contra = TypeVar("StateT_contra", contravariant=True)
+
+
+class _SyncNode(Protocol[StateT_contra]):
+    # A `state`-named parameter is what LangGraph's add_node expects (not a position-only Callable).
+    def __call__(self, state: StateT_contra) -> dict: ...
+
+
+class _AsyncNode(Protocol[StateT_contra]):
+    def __call__(self, state: StateT_contra) -> Awaitable[dict]: ...
 
 _DECISION_KEYS = ("intent", "retrieval_score", "review_decision", "error")
 
@@ -69,12 +79,19 @@ def _finish(name: str, start: float, update: dict) -> dict:
     return {**update, "trace": [span]}
 
 
-def traced(name: str, fn: Callable[[StateT], Any]):
+@overload
+def traced(name: str, fn: Callable[[StateT], Awaitable[dict]]) -> _AsyncNode[StateT]: ...
+@overload
+def traced(name: str, fn: Callable[[StateT], dict]) -> _SyncNode[StateT]: ...
+
+
+def traced(name: str, fn: Callable[[StateT], Any]) -> Callable[[StateT], Any]:
     """Wrap a node (sync or async) to record a span, preserving its state type.
 
-    The wrapper keeps a `state: StateT` parameter so LangGraph's add_node sees a valid node
-    signature (it expects a parameter named `state`). GraphInterrupt (HITL) propagates untimed:
-    the span is recorded only once the node resolves.
+    Overloaded so callers get the right return shape: a sync node yields a sync wrapper, an async
+    node an async wrapper. The wrapper keeps a `state: StateT` parameter so LangGraph's add_node
+    sees a valid node signature. GraphInterrupt (HITL) propagates untimed: the span is recorded
+    only once the node resolves.
     """
     if asyncio.iscoroutinefunction(fn):
 

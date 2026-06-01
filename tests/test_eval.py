@@ -44,13 +44,23 @@ def test_stub_synth_echoes_context_with_citation():
 # --- scoring -----------------------------------------------------------------
 
 
-def _obs(**kw):
-    base = dict(
-        intent="question", retrieved_sources=["deployment.md"], cited_sources=["deployment.md"],
-        answer="listens on port 8000 [1]", invoked_tools=[], no_answer=False,
+def _obs(
+    *,
+    intent: str | None = "question",
+    retrieved_sources: list[str] | None = None,
+    cited_sources: list[str] | None = None,
+    answer: str = "listens on port 8000 [1]",
+    invoked_tools: list[str] | None = None,
+    no_answer: bool = False,
+) -> Observed:
+    return Observed(
+        intent=intent,
+        retrieved_sources=retrieved_sources if retrieved_sources is not None else ["deployment.md"],
+        cited_sources=cited_sources if cited_sources is not None else ["deployment.md"],
+        answer=answer,
+        invoked_tools=invoked_tools if invoked_tools is not None else [],
+        no_answer=no_answer,
     )
-    base.update(kw)
-    return Observed(**base)
 
 
 def test_score_case_all_pass():

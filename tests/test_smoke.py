@@ -4,7 +4,7 @@ from agentkit.config import Settings
 
 
 def test_settings_defaults():
-    s = Settings(_env_file=None)
+    s = Settings(_env_file=None)  # type: ignore[call-arg]  # pydantic-settings init kwarg
     assert s.anthropic_model
     assert s.database_url.startswith("postgresql")
 

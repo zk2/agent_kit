@@ -3,6 +3,7 @@
 import asyncio
 
 from langchain_core.messages import AIMessage, HumanMessage
+from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import tool
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.types import Command
@@ -25,7 +26,7 @@ def _build(monkeypatch, responses):
     return graph, saved
 
 
-def _cfg(tid):
+def _cfg(tid) -> RunnableConfig:
     return {"configurable": {"thread_id": tid}}
 
 

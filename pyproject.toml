@@ -51,10 +51,9 @@ asyncio_mode = "auto"
 testpaths = ["tests"]
 
 [tool.pyright]
-# Gates the shippable package. Tests use fakes/monkeypatching and are intentionally not checked.
 venvPath = "."
 venv = "venv"
-include = ["agentkit"]
-exclude = ["venv", "tests", "**/__pycache__"]
+include = ["agentkit", "tests"]
+exclude = ["venv", "**/__pycache__"]
 typeCheckingMode = "basic"
 pythonVersion = "3.11"
